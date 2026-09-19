@@ -1,0 +1,3 @@
+# Nạp tài liệu (PDF/Word/PowerPoint/ảnh -> Markdown + số trang). Nặng (~ vài GB, có torch).
+# Cài riêng để app chat vẫn chạy được khi chỉ nạp file văn bản.
+mineru==4.0.0

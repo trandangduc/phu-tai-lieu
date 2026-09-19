@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat Tài Liệu</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📑</text></svg>">
+  <link rel="stylesheet" href="style.css">
+  <script src="vendor/marked.min.js"></script>
+  <script src="vendor/purify.min.js"></script>
+  <!-- Công thức toán (datasheet hay có). Không có mạng thì bỏ qua, chữ vẫn hiện dạng thô. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+  <div id="layout">
+    <aside id="side">
+      <div class="side-head">
+        <strong>Chat Tài Liệu</strong>
+        <button id="btn-new" class="primary">+ Cuộc hội thoại mới</button>
+      </div>
+      <section class="side-sec">
+        <div class="side-title">Tài liệu <span id="doc-count"></span></div>
+        <label class="drop" id="drop">
+          <input type="file" id="file-input" multiple hidden
+                 accept=".pdf,.docx,.pptx,.xlsx,.png,.jpg,.jpeg,.webp,.tif,.tiff,.bmp,.txt,.md,.csv,.json,.log,.html,.htm,.xml">
+          <span>Kéo thả hoặc bấm để tải lên</span>
+          <small>PDF · Word · PowerPoint · Excel · ảnh · văn bản</small>
+        </label>
+        <div id="jobs"></div>
+        <ul id="doc-list" class="list"></ul>
+      </section>
+      <section class="side-sec grow">
+        <div class="side-title">Lịch sử</div>
+        <ul id="sess-list" class="list"></ul>
+      </section>
+      <div id="health" class="health"></div>
+    </aside>
+
+    <main id="main">
+      <div id="chat-log"></div>
+      <form id="composer">
+        <textarea id="input" rows="2" placeholder="Hỏi về tài liệu của bạn… (Enter gửi · Shift+Enter xuống dòng)"></textarea>
+        <button id="btn-send" class="primary" type="submit">Gửi</button>
+      </form>
+    </main>
+
+    <aside id="doc-pane" hidden>
+      <div id="doc-header"></div>
+      <button id="btn-close-doc" class="ghost" aria-label="Đóng khung tài liệu">✕</button>
+      <div id="doc-content"></div>
+    </aside>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
