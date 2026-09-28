@@ -1,15 +1,16 @@
 /*
  * Tải nội dung trang Gamma (https://gamma.app/embed/...?mode=doc) về thành file Word (.doc)
- * SỬA ĐƯỢC: chữ, tiêu đề, danh sách, bảng, ảnh giữ nguyên thứ tự các thẻ.
- *
- * PDF (kể cả PDF có chữ) không phải để sửa; muốn sửa nội dung thì dùng file này.
+ * SỬA ĐƯỢC, và mở hộp in để lưu cùng nội dung đó ra PDF CÓ CHỮ (bôi đen, tìm, copy được).
+ * Chữ, tiêu đề, danh sách, bảng, ảnh giữ nguyên thứ tự các thẻ; mỗi thẻ một trang.
  *
  * Cách dùng:
  *   1. Mở link Gamma trong Chrome/Edge, đợi tải xong.
  *   2. F12 -> Console -> dán toàn bộ file này -> Enter.
  *   3. Trình duyệt tải về `<tên trang>.doc`. Mở bằng Word; Word có thể hỏi về định dạng,
  *      bấm Yes. Muốn file .docx thật: File -> Save As -> Word Document (*.docx).
- *      Muốn PDF có chữ: File -> Save As -> PDF.
+ *   4. Sau đó hộp in tự mở: Đích = "Lưu dưới dạng PDF" (Save as PDF) -> Lưu.
+ *      Không chọn "Microsoft Print to PDF". Hộp in không mở (bị chặn) thì trong Word:
+ *      File -> Save As -> PDF cũng ra PDF có chữ.
  */
 (async () => {
   const CARD = '.react-renderer.node-card.block.block-card';
@@ -115,6 +116,7 @@
 
   const body = cards.map(c => `<section>${clean(c)}</section>`)
     .join('<br clear="all" style="page-break-before:always">');
+  const PDF = true;                        // false: chỉ tải file Word, không mở hộp in
   const title = document.title.replace(/\s*[|–-]\s*Gamma.*$/i, '').trim() || 'gamma';
 
   const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -135,4 +137,38 @@
   a.click();
   a.remove();
   console.log(`Đã xuất ${cards.length} thẻ ra ${a.download}`);
+  if (!PDF) return;
+
+  // PDF: in cùng nội dung sạch trong một iframe riêng. Không còn hiệu ứng kính mờ/filter của
+  // Gamma nên Chrome in ra chữ thật, không chụp thành ảnh.
+  const printHtml = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
+  <style>
+    @page { margin: 16mm 18mm; }
+    body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.45; color: #111; }
+    section + section { break-before: page; }
+    h1, h2, h3, h4 { break-after: avoid; }
+    table { border-collapse: collapse; width: 100%; }
+    tr, img, li { break-inside: avoid; }
+    td, th { border: 1px solid #999; padding: 4px 6px; vertical-align: top; }
+    img { max-width: 100%; height: auto; }
+    a { color: inherit; }
+  </style></head>
+  <body>${cards.map(c => `<section>${clean(c)}</section>`).join('')}</body></html>`;
+
+  document.getElementById('gamma-pdf-frame')?.remove();
+  const frame = document.createElement('iframe');
+  frame.id = 'gamma-pdf-frame';
+  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(frame);
+  frame.srcdoc = printHtml;
+  await new Promise(r => { frame.onload = r; });
+  // Đợi ảnh tải xong (tối đa 15 giây) để PDF không bị ô ảnh trống.
+  await Promise.race([
+    Promise.all([...frame.contentDocument.images].map(img => img.complete ? null :
+      new Promise(r => { img.onload = img.onerror = r; }))),
+    sleep(15000),
+  ]);
+  document.title = title;                  // tên gợi ý của file PDF
+  frame.contentWindow.focus();
+  frame.contentWindow.print();
 })();
