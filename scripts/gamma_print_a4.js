@@ -62,18 +62,45 @@
   //    100vh + flex + ngắt trang: thẻ dài tràn khỏi khung đè lên thẻ sau, hai lệnh ngắt trang
   //    cộng lại ra trang trắng. Gỡ các thứ đó ở khung, để chỉ thẻ Gamma ngắt trang.
   // 4) Thẻ dài hơn một trang: cho nội dung chảy sang trang sau.
+  // 5) Khoảng trống lớn ở đầu trang: Chrome dời chỗ ngắt trang lên khung bọc mà thẻ là con đầu
+  //    tiên, nên padding/margin trên của khung đó bị đẩy xuống đầu trang mới. Bỏ các khoảng đó
+  //    khi in.
+  // 6) Thẻ Gamma (hoặc khung trong thẻ) cao tối thiểu theo màn hình (vh). Khi in vh = cả trang
+  //    A4, nên thẻ ngắn cũng cao hơn 1 trang: chân thẻ (logo + số trang) tràn sang trang mới,
+  //    nội dung căn giữa để lại khoảng trống lớn trên tiêu đề. Bỏ các chiều cao đó khi in.
+  // 7) Quy tắc section/article 100vh + ngắt trang ở trên còn trúng cả khung không chứa thẻ ->
+  //    trang trắng. Trang Gamma thì gỡ quy tắc đó cho MỌI section/article/...
   const CARD = '.react-renderer.node-card.block.block-card';
   const SCALE = 1.18;
   const PAGE_W = 794, PAGE_H = 1123;      // A4 ở 96 dpi
   const WRAP = 'div[data-card-id], .card, section, article';
-  document.querySelectorAll('.print-card, .print-first, .print-long, .print-wrap')
-    .forEach(el => el.classList.remove('print-card', 'print-first', 'print-long', 'print-wrap'));
+  const MARKS = ['print-card', 'print-first', 'print-long', 'print-wrap', 'print-lead', 'print-nominh'];
+  document.querySelectorAll(MARKS.map(m => '.' + m).join(','))
+    .forEach(el => el.classList.remove(...MARKS));
   const cards = [...document.querySelectorAll(CARD)].filter(c => !c.parentElement.closest(CARD));
+  if (cards.length) document.querySelectorAll(WRAP).forEach(el => el.classList.add('print-wrap'));
+  // Chiều cao theo màn hình (min-height, hoặc height đặt cứng) từ nửa màn hình trở lên, trong
+  // thẻ và các khung bọc ngoài thẻ.
+  const tall = window.innerHeight * 0.5;
+  const stretched = el => {
+    const cs = getComputedStyle(el);
+    return parseFloat(cs.minHeight) >= tall ||
+      (/px$/.test(el.style.height || '') && parseFloat(el.style.height) >= tall);
+  };
+  for (const card of cards) {
+    for (const el of [card, ...card.querySelectorAll('*')]) {
+      if (stretched(el)) el.classList.add('print-nominh');
+    }
+    for (let el = card.parentElement; el && el !== document.body; el = el.parentElement) {
+      if (stretched(el)) el.classList.add('print-nominh');
+    }
+  }
   cards.forEach((card, i) => {
     card.classList.add('print-card');
     if (i === 0) card.classList.add('print-first');
-    for (let el = card.parentElement; el && el !== document.body; el = el.parentElement) {
-      if (el.matches(WRAP)) el.classList.add('print-wrap');
+    for (let el = card; el.parentElement && el.parentElement !== document.body &&
+         el.parentElement.firstElementChild === el; el = el.parentElement) {
+      el.parentElement.classList.add('print-lead');
     }
     const r = card.getBoundingClientRect();
     // Khi in, thẻ co lại còn (khổ A4 / zoom) nên chữ xuống dòng nhiều hơn -> cao hơn.
@@ -92,6 +119,16 @@
         break-before: page !important;
         page-break-before: always !important;
         max-width: 100% !important;
+        margin-top: 0 !important;
+        min-height: 0 !important;
+      }
+      .print-nominh {
+        min-height: 0 !important;
+        height: auto !important;
+      }
+      .print-lead {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
       }
       ${CARD}.print-card.print-first {
         break-before: auto !important;
