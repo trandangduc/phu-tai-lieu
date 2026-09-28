@@ -42,10 +42,15 @@
     'THEAD', 'TBODY', 'TR', 'TH', 'TD', 'STRONG', 'B', 'EM', 'I', 'U', 'S', 'A', 'BR',
     'IMG', 'BLOCKQUOTE', 'CODE', 'PRE', 'HR', 'SUB', 'SUP']);
 
+  // Word mở .doc dạng HTML thường theo mã Windows-1252, làm chữ ngoài ASCII (’ – • tiếng Việt)
+  // thành "â€™", "Ã¡". Đổi hết sang mã số HTML (&#8217;) thì bảng mã nào cũng ra đúng chữ.
+  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+    .replace(/[^\x00-\x7f]/gu, c => `&#${c.codePointAt(0)};`);
+
   // Chép cây DOM thành HTML sạch: bỏ class/style/div bọc ngoài, giữ cấu trúc văn bản.
   const clean = node => {
     if (node.nodeType === Node.TEXT_NODE) {
-      return node.textContent.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      return esc(node.textContent);
     }
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
     const cs = getComputedStyle(node);
@@ -59,7 +64,7 @@
       const src = node.currentSrc || node.src;
       if (!src || src.startsWith('data:image/svg')) return '';
       const w = Math.min(node.getBoundingClientRect().width || 400, 600);
-      return `<img src="${src}" width="${Math.round(w)}" alt="${(node.alt || '').replace(/"/g, '&quot;')}">`;
+      return `<img src="${src}" width="${Math.round(w)}" alt="${esc(node.alt || '')}">`;
     }
     const inner = [...node.childNodes].map(clean).join('');
     if (!KEEP.has(tag)) {
@@ -81,7 +86,7 @@
 
   const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
     xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-  <head><meta charset="utf-8"><title>${title}</title>
+  <head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>${esc(title)}</title>
   <style>
     body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.4; }
     table { border-collapse: collapse; }
