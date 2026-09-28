@@ -3,7 +3,7 @@
 // Trong lúc xuất, Chrome hiện thanh "... started debugging this browser": bình thường,
 // thanh đó tự tắt khi xong.
 
-const WIDTHS = { web: 1200, a4: 794 };   // "Như web" = bề rộng Gamma tự dùng khi in; A4 = 210mm
+const A4 = { width: 794, height: 1123 };  // 210 x 297 mm ở 96 dpi
 const TRIES = 4;                         // in lại tối đa mấy lần nếu thẻ tràn sang trang sau
 
 const send = (target, method, params = {}) =>
@@ -15,21 +15,38 @@ const send = (target, method, params = {}) =>
 const run = async (tabId, file) =>
   (await chrome.scripting.executeScript({ target: { tabId }, files: [file] }))[0]?.result;
 
-const setParams = (tabId, width, extra) => chrome.scripting.executeScript({
+const setParams = (tabId, width, extra, keepMinH) => chrome.scripting.executeScript({
   target: { tabId },
-  func: (w, e) => { window.__gfitWidth = w; window.__gfitExtra = e; },
-  args: [width, extra],
+  func: (w, e, k) => { window.__gfitWidth = w; window.__gfitExtra = e; window.__gfitKeepMinH = k; },
+  args: [width, extra, keepMinH],
 });
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// Số trang trong PDF (Skia ghi mỗi trang một đối tượng "/Type /Page").
-const countPages = b64 => (atob(b64).match(/\/Type\s*\/Page(?![s\w])/g) || []).length;
+// Chiều cao (pt) từng trang PDF theo thứ tự, đọc từ /MediaBox của mỗi trang.
+const pageHeights = b64 =>
+  [...atob(b64).matchAll(/\/MediaBox\s*\[\s*0\s+0\s+[\d.]+\s+([\d.]+)\s*\]/g)].map(m => +m[1]);
+
+// Thẻ nào bị tràn: trang thừa có cùng khổ với trang của thẻ ngay trước nó (cùng named page).
+function overflowed(heightsPx, pagesPt) {
+  const expect = heightsPx.map(h => h * 0.75);
+  const over = {};
+  let i = 0;
+  for (const h of pagesPt) {
+    if (i < expect.length && Math.abs(h - expect[i]) < 1) { i++; continue; }
+    over[Math.max(0, i - 1)] = (over[Math.max(0, i - 1)] || 0) + 1;
+  }
+  return over;
+}
 
 async function makePdf(tabId, mode = 'web') {
-  const width = WIDTHS[mode] || WIDTHS.web;
-  const cards = await run(tabId, 'scripts/prepare_pdf.js');
-  if (!cards) throw new Error('Không thấy thẻ Gamma nào trên trang này. Trang đã tải xong chưa?');
+  const prep = await run(tabId, 'scripts/prepare_pdf.js');
+  if (!prep || !prep.cards) throw new Error('Không thấy thẻ Gamma nào trên trang này. Trang đã tải xong chưa?');
+  // "Như web": trang rộng đúng bằng khung thẻ trên màn hình, cửa sổ cao như đang thấy (JS của
+  // Gamma tính chiều cao tối thiểu của thẻ theo cửa sổ). A4: rộng 210mm.
+  const web = mode !== 'a4';
+  const width = web ? (prep.cardWidth || 1000) : A4.width;
+  const viewHeight = web ? (prep.viewHeight || 900) : A4.height;
 
   const target = { tabId };
   await new Promise((resolve, reject) => chrome.debugger.attach(target, '1.3', () => {
@@ -42,12 +59,13 @@ async function makePdf(tabId, mode = 'web') {
     // in to hơn lúc đo -> thẻ tràn sang trang sau.
     await send(target, 'Emulation.setEmulatedMedia', { media: 'print' });
     await send(target, 'Emulation.setDeviceMetricsOverride',
-      { width, height: 1000, deviceScaleFactor: 1, mobile: false });
+      { width, height: viewHeight, deviceScaleFactor: 1, mobile: false });
     await sleep(1500);
 
-    let data, pages, fit, extra = 0;
+    let data, pages, fit;
+    const extra = {};
     for (let t = 0; t < TRIES; t++) {
-      await setParams(tabId, width, extra);
+      await setParams(tabId, width, extra, web);
       fit = await run(tabId, 'scripts/fit_pages.js');
       await sleep(300);
       ({ data } = await send(target, 'Page.printToPDF', {
@@ -57,9 +75,13 @@ async function makePdf(tabId, mode = 'web') {
         generateTaggedPDF: true,
         marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0,
       }));
-      pages = countPages(data);
+      const sizes = pageHeights(data);
+      pages = sizes.length;
       if (pages <= fit.cards) break;
-      extra += 0.04;                     // có thẻ tràn: cho mọi trang cao thêm rồi in lại
+      // Chỉ nới đúng những thẻ bị tràn (mỗi trang thừa +5%), các trang khác giữ vừa khít.
+      for (const [i, n] of Object.entries(overflowed(fit.heights, sizes))) {
+        extra[i] = (extra[i] || 0) + 0.05 * n;
+      }
     }
     const tab = await chrome.tabs.get(tabId);
     const title = (tab.title || 'gamma').replace(/\s*[|–-]\s*Gamma.*$/i, '').trim() || 'gamma';

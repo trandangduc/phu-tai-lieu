@@ -3,8 +3,9 @@
 Xuất trang Gamma (`https://gamma.app/embed/...?mode=doc` hoặc `https://gamma.app/docs/...`) ra:
 
 - **PDF**: chữ thật (bôi đen, Ctrl+F, copy được), có bookmark theo heading. Mỗi thẻ Gamma là
-  một trang: rộng bằng A4, **cao vừa đúng thẻ** (không bó vào chiều cao A4), nên không có trang
-  trắng, không cắt ngang thẻ, không có trang chỉ có vài dòng cuối.
+  một trang **cao vừa đúng thẻ**, nên không có trang trắng, không cắt ngang thẻ. Hai khổ:
+  - **Như web** (mặc định): trang đúng bằng khung thẻ bạn thấy trên màn hình, giống HTML.
+  - **Rộng bằng A4**: trang rộng 210mm, thẻ dàn lại theo bề rộng đó.
 - **Word (.doc)**: sửa được nội dung.
 - **HTML**: một file, giữ giao diện.
 

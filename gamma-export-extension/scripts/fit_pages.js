@@ -9,15 +9,18 @@
  *     sổ (vw) và JS của Gamma dàn lại chữ khi cửa sổ đổi cỡ, nên phải đo ở đúng bề rộng in.
  * Tham số (đặt trước khi chạy, cùng "isolated world" của extension):
  *   window.__gfitWidth  bề rộng trang, px (mặc định 794 = A4);
- *   window.__gfitExtra  bù thêm chiều cao (tỉ lệ, vd. 0.04) khi lần in trước bị tràn trang.
+ *   window.__gfitExtra  { chỉ số thẻ: tỉ lệ } bù chiều cao cho thẻ bị tràn ở lần in trước;
+ *   window.__gfitKeepMinH  true (khổ "Như web"): giữ chiều cao tối thiểu của thẻ như trên web.
+ *                          false (A4): bỏ, vì nó tính theo màn hình và làm thẻ ngắn cao vống.
  * Mỗi thẻ một "named page" (`@page gfitN { size: W H }`); Chrome tự ngắt trang khi đổi tên.
  * Chạy lại nhiều lần được. Trả về số thẻ và chiều cao các trang.
  */
 (() => {
   const CARD = '.react-renderer.node-card.block.block-card';
   const PAGE_W = window.__gfitWidth || 794;
-  const EXTRA = window.__gfitExtra || 0;
-  const SLACK = 6;             // chừa vài px cho làm tròn
+  const EXTRA = window.__gfitExtra || {};       // { chỉ số thẻ: tỉ lệ bù } cho thẻ bị tràn lần trước
+  const KEEP_MINH = !!window.__gfitKeepMinH;    // "Như web": giữ chiều cao tối thiểu của thẻ
+  const SLACK = 2;             // chừa 2px cho làm tròn
   const MAX_H = 19000;         // PDF giới hạn trang ~200 inch
 
   document.getElementById('gamma-fit-pages')?.remove();
@@ -32,16 +35,17 @@
   // Thân thẻ có min-height cố định bằng px tính theo màn hình (vd. 1269px): bỏ.
   base.textContent = `html { scrollbar-width: none !important; } html::-webkit-scrollbar { display: none !important; }
     @media print {
-      ${CARD} .card-body { min-height: 0 !important; }
-      ${CARD}[data-gfit], [data-gfit] { width: auto !important; margin: 0 !important;
+      ${KEEP_MINH ? '' : `${CARD} .card-body { min-height: 0 !important; }`}
+      ${CARD}[data-gfit], [data-gfit] { zoom: 1 !important; width: auto !important; margin: 0 !important;
         break-before: auto !important; page-break-before: auto !important; break-inside: auto !important; }
     }`;
   document.head.appendChild(base);
   cards.forEach((c, i) => c.setAttribute('data-gfit', i));
 
-  const heights = cards.map(c => {
+  const heights = cards.map((c, i) => {
     const h = c.getBoundingClientRect().height;
-    return Math.min(MAX_H, Math.ceil(h * (1 + EXTRA)) + SLACK + (EXTRA ? 24 : 0));
+    const e = EXTRA[i] || 0;
+    return Math.min(MAX_H, Math.ceil(h * (1 + e)) + SLACK + (e ? 16 : 0));
   });
 
   const SEL = i => `${CARD}[data-gfit="${i}"]`;

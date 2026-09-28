@@ -4,7 +4,7 @@
  *   - mở khung cuộn cao đúng màn hình (100vh, overflow hidden/auto) để in đủ nội dung;
  *   - khi in: trả bề rộng trang về khổ giấy (CSS in của Gamma ép body 1200px); ẩn thanh công cụ/nút/huy hiệu cố định, tắt filter/blend (Chrome chụp chúng thành
  *     ảnh làm mất chữ), giữ màu nền.
- * Trả về số thẻ tìm thấy.
+ * Trả về số thẻ, bề rộng khung thẻ và chiều cao cửa sổ đang thấy.
  */
 (async () => {
   const CARD = '.react-renderer.node-card.block.block-card';
@@ -29,7 +29,12 @@
   ]);
 
   const cards = [...document.querySelectorAll(CARD)].filter(c => !c.parentElement.closest(CARD));
-  if (!cards.length) return 0;
+  if (!cards.length) return { cards: 0 };
+  // Bề rộng khung thẻ và chiều cao cửa sổ như người dùng đang thấy: khổ "Như web" dùng để
+  // mỗi trang PDF đúng bằng khung thẻ trên màn hình.
+  const body0 = cards[0].querySelector('.card-body') || cards[0];
+  const cardWidth = Math.round(body0.getBoundingClientRect().width);
+  const viewHeight = window.innerHeight;
 
   document.querySelectorAll('[data-gprep]').forEach(el => el.removeAttribute('data-gprep'));
   for (let el = cards[0].parentElement; el; el = el.parentElement) el.setAttribute('data-gprep', 'open');
@@ -62,7 +67,10 @@
         margin-left: 0 !important; margin-right: 0 !important;
         flex-shrink: 1 !important; max-width: 100% !important;
       }
-      ${CARD} .card-body { max-width: 100% !important; }
+      /* Thẻ phủ kín trang: bỏ khoảng đệm quanh thẻ, khung thẻ rộng bằng trang. */
+      ${CARD} .card-wrapper { padding: 0 !important; }
+      ${CARD} .card-body { width: 100% !important; max-width: 100% !important; margin: 0 !important;
+        flex: 1 1 auto !important; border-radius: 0 !important; box-shadow: none !important; }
       /* Bảng Gamma cố định % bề rộng cột; ở khổ giấy cột hẹp bị ngắt giữa từ ("Freque ncy").
          Cho bảng tự chia cột theo nội dung, chỉ ngắt ở khoảng trắng. */
       ${CARD} table { table-layout: auto !important; }
@@ -79,5 +87,5 @@
     }
   `;
   document.head.appendChild(style);
-  return cards.length;
+  return { cards: cards.length, cardWidth, viewHeight };
 })();
