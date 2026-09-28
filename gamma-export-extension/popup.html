@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font: 14px/1.4 system-ui, sans-serif; margin: 0; padding: 14px; width: 260px; color: #1a1a1a; }
+    h1 { font-size: 15px; margin: 0 0 10px; }
+    button {
+      display: block; width: 100%; margin: 0 0 8px; padding: 9px 10px; border: 1px solid #c9d3e0;
+      border-radius: 8px; background: #fff; font: inherit; text-align: left; cursor: pointer;
+    }
+    button:hover:not(:disabled) { background: #f1f5fb; }
+    button:disabled { opacity: .5; cursor: default; }
+    button b { display: block; }
+    button span { color: #5a6472; font-size: 12px; }
+    #status { min-height: 18px; font-size: 12px; color: #5a6472; white-space: pre-wrap; }
+    #status.err { color: #b3261e; }
+  </style>
+</head>
+<body>
+  <h1>Gamma Export</h1>
+  <button id="pdf"><b>Tải PDF</b><span>Chữ thật, mỗi thẻ một trang, có bookmark</span></button>
+  <button id="word"><b>Tải Word (.doc)</b><span>Sửa được nội dung</span></button>
+  <button id="html"><b>Tải HTML</b><span>Một file, giữ giao diện</span></button>
+  <div id="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

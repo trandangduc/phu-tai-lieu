@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Gamma Export (PDF / Word / HTML)",
+  "version": "1.0.0",
+  "description": "Xuất trang Gamma ra PDF có chữ (mỗi thẻ một trang, có bookmark heading), Word hoặc HTML.",
+  "permissions": ["activeTab", "scripting", "debugger", "downloads"],
+  "host_permissions": ["https://gamma.app/*"],
+  "action": {
+    "default_title": "Gamma Export",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
