@@ -12,6 +12,10 @@
  * Nếu Gamma/Cloudflare bắt xác minh "Verify you are human": script mở cửa sổ Chrome, bạn bấm
  * xác minh xong nó tự làm tiếp (hồ sơ trình duyệt lưu ở thư mục tạm, lần sau không hỏi lại).
  */
+if (typeof require === 'undefined') {
+  throw new Error('File này chạy bằng Node trong terminal, không dán vào Console. ' +
+    'Muốn dùng Console thì dán scripts/gamma_pdf_text.js.');
+}
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
