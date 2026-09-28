@@ -13,12 +13,21 @@
     button:disabled { opacity: .5; cursor: default; }
     button b { display: block; }
     button span { color: #5a6472; font-size: 12px; }
+    .opt { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      margin: 0 0 8px; font-size: 12px; color: #5a6472; }
+    .opt select { font: inherit; padding: 3px 4px; border-radius: 6px; border: 1px solid #c9d3e0; }
     #status { min-height: 18px; font-size: 12px; color: #5a6472; white-space: pre-wrap; }
     #status.err { color: #b3261e; }
   </style>
 </head>
 <body>
   <h1>Gamma Export</h1>
+  <label class="opt">Khổ PDF
+    <select id="mode">
+      <option value="web">Như web (rộng, giống Gamma)</option>
+      <option value="a4">Rộng bằng A4</option>
+    </select>
+  </label>
   <button id="pdf"><b>Tải PDF</b><span>Chữ thật, mỗi thẻ một trang, có bookmark</span></button>
   <button id="word"><b>Tải Word (.doc)</b><span>Sửa được nội dung</span></button>
   <button id="html"><b>Tải HTML</b><span>Một file, giữ giao diện</span></button>

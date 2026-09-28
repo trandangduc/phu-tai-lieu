@@ -1,5 +1,8 @@
 const status = document.getElementById('status');
 const buttons = [...document.querySelectorAll('button')];
+const mode = document.getElementById('mode');
+try { mode.value = localStorage.getItem('gammaExportMode') || 'web'; } catch {}
+mode.onchange = () => { try { localStorage.setItem('gammaExportMode', mode.value); } catch {} };
 
 const say = (text, err = false) => {
   status.textContent = text;
@@ -25,9 +28,10 @@ async function busy(label, job) {
 
 document.getElementById('pdf').onclick = () => busy('Đang xuất PDF (cuộn trang, đo từng thẻ)...', async () => {
   const tab = await activeTab();
-  const r = await chrome.runtime.sendMessage({ cmd: 'pdf', tabId: tab.id });
+  const r = await chrome.runtime.sendMessage({ cmd: 'pdf', tabId: tab.id, mode: mode.value });
   if (!r.ok) throw new Error(r.error);
-  return `Xong: ${r.filename} (${r.cards} thẻ).\nMuốn xem lại trang như cũ thì tải lại (F5).`;
+  const warn = r.pages > r.cards ? `\nLưu ý: ${r.pages} trang cho ${r.cards} thẻ (có thẻ vẫn tràn trang).` : '';
+  return `Xong: ${r.filename} (${r.cards} thẻ, ${r.pages} trang).${warn}\nMuốn xem lại trang như cũ thì tải lại (F5).`;
 });
 
 for (const [id, file, label] of [['word', 'scripts/word.js', 'Word'], ['html', 'scripts/save_html.js', 'HTML']]) {
